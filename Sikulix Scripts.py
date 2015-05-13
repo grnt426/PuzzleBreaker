@@ -1,9 +1,10 @@
 import math
+from collections import defaultdict
 
 def quitProcessing(event):
     print "Done!"
 def getTileIndex(x, y):
-    index = (math.floor((x - leftX) / tileW), math.floor((y - leftY) / tileH))
+    index = (int((x - leftX) / tileW), int((y - leftY) / tileH))
     return index
 
 def findTilePositions(tileType, tileImg):
@@ -12,7 +13,12 @@ def findTilePositions(tileType, tileImg):
         tileData = matches.next()
         tileData = tileData.getTarget()
         tileIndex = getTileIndex(tileData.getX(), tileData.getY())
-        puzzleTiles[tileIndex[0]][tileIndex[1]] = tileType
+        prevValue = 0
+        if tileType in puzzleTiles[tileIndex[1]]:
+            prevValue = puzzleTiles[tileIndex[1]][tileType]
+        else:
+            puzzleTiles[tileIndex[1]][tileType] = 0
+        puzzleTiles[tileIndex[1]][tileType] = prevValue | (1 << tileIndex[0])
     
 Env.addHotkey(Key.ESC, KeyModifier.SHIFT, quitProcessing)
 
@@ -41,9 +47,20 @@ tileTypes = {0: "blueSquare.png", 1: "blueCircle.png", 2: "whiteCircle.png", 3: 
 print tileTypes
 
 # Build the gamestate
-puzzleTiles = {0:{}, 1:{}, 2:{}, 3:{}, 4:{}, 5:{}}
+puzzleTiles = defaultdict(dict)
 for key in tileTypes:
     findTilePositions(key, tileTypes[key])
 print
 print "Puzzle State: "
 print puzzleTiles
+
+# Find a simple match
+typeRow = puzzleTiles[7][2]
+xox = typeRow & (typeRow << 2)
+xx = typeRow & (typeRow << 1)
+print xox
+print xx
+if xox - xx >= 0:
+    action = Region(3 * tileW + leftX, 7 * tileH + leftY, tileW, tileH)
+    action.highlight()
+    puzRegion.mouseMove(action)
