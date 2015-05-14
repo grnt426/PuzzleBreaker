@@ -1,8 +1,14 @@
 import math
+import sys
 from collections import defaultdict
+
 
 def quitProcessing(event):
     print "Done!"
+    sys.exit(0)
+
+Env.addHotkey(Key.ESC, KeyModifier.SHIFT, quitProcessing)
+               
 def getTileIndex(x, y):
     index = (int((x - leftX) / tileW), int((y - leftY) / tileH))
     return index
@@ -19,8 +25,6 @@ def findTilePositions(tileType, tileImg):
         else:
             puzzleTiles[tileIndex[1]][tileType] = 0
         puzzleTiles[tileIndex[1]][tileType] = prevValue | (1 << tileIndex[0])
-    
-Env.addHotkey(Key.ESC, KeyModifier.SHIFT, quitProcessing)
 
 print "A bot to play Puzzle Pirates!"
 
@@ -54,13 +58,43 @@ print
 print "Puzzle State: "
 print puzzleTiles
 
-# Find a simple match
-typeRow = puzzleTiles[7][2]
-xox = typeRow & (typeRow << 2)
-xx = typeRow & (typeRow << 1)
-print xox
-print xx
-if xox - xx >= 0:
-    action = Region(3 * tileW + leftX, 7 * tileH + leftY, tileW, tileH)
-    action.highlight()
-    puzRegion.mouseMove(action)
+def convertBitMaskToCount(i):
+    i = i - ((i >> 1) & 0x55555555);
+    i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
+    return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
+
+def getPosOfSetBit(bit):
+    if bit == 1:
+        return 0
+    elif bit == 2:
+        return 1
+    elif bit == 4:
+        return 2
+    elif bit == 8:
+        return 3
+    elif bit == 16:
+        return 4
+    elif bit == 32:
+        return 5
+
+matchFound = 0
+for key in puzzleTiles:
+    curRow = puzzleTiles[key]
+    for tileType in curRow:
+        marks = curRow[tileType]
+        xox = marks & (marks << 2)
+        xx = marks & (marks << 1)
+        if convertBitMaskToCount(marks) > 2 and (xox - xx) > 0:
+            print "Key %d, Type %d, Val %d" % (key, tileType, marks)
+            print "XOX %d, XX %d" % (xox, xx)
+            col = getPosOfSetBit(xox >> 1)
+            action = Region(col * tileW + leftX, key * tileH + leftY, tileW, tileH)
+            action.highlight(1)
+            action.setX(action.getX() + 5)
+            puzRegion.mouseMove(action)
+            puzRegion.mouseDown(Button.LEFT)
+            puzRegion.mouseUp(Button.LEFT)
+            matchFound = 1
+
+if matchFound == 0:
+    print "Found no matches, make me better :("
