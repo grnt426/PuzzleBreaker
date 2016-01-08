@@ -39,6 +39,14 @@ def getPosOfSetBit(bit):
         return 0
     return int(math.log(bit)/math.log(2))
 
+# Build the gamestate
+def buildGameState():
+    puzzleTiles.clear()
+    for key in tileTypes:
+        findTilePositions(key, tileTypes[key])
+    #print "Puzzle State: "
+    #print puzzleTiles
+
 print "A bot to play 3-Match!"
 print "Python version %s" % (sys.version)
 
@@ -64,56 +72,54 @@ print "=Tile Data="
 print "Size: %d, %d" % (tileW, tileH)
 tileTypes = {0: "1452210238386.png", 1: "1452210253817.png", 2: "1452210263737.png", 3: "1452211649479.png", 4: "1452210282937.png", 5: "1452210297009.png", 6: "1452210319985.png"}
 print tileTypes
-
-# Build the gamestate
 puzzleTiles = defaultdict(dict)
-for key in tileTypes:
-    findTilePositions(key, tileTypes[key])
-print "Puzzle State: "
-print puzzleTiles
 
 # Give the Game Window focus
 clickAtRegion(puzRegion)
 clickAtRegion(puzRegion)
 
-matchFound = 0
-#while(matchFound == 1):
- #   matchFound = 0
-for key in puzzleTiles:
-    curRow = puzzleTiles[key]
-    if matchFound == 1:
-        break
-    for tileType in curRow:
+matchFound = 1
+matchesFound = 0
+while(matchFound == 1 and matchesFound < 3):
+    time.sleep(5)
+    buildGameState()
+    matchFound = 0
+    for key in puzzleTiles:
+        curRow = puzzleTiles[key]
         if matchFound == 1:
             break
-        marks = curRow[tileType]
-        xox = marks & (marks << 2)
-        xx = marks & (marks << 1)
-        binCount = bin(marks).count("1")
-        if key == 2 and tileType == 2:
-            print "XOX %d, XX %d" % (getPosOfSetBit(xox), getPosOfSetBit(xx))
-        delta = getPosOfSetBit(xox) - getPosOfSetBit(xx)
-        if binCount >= 3 and delta > 0 and delta < 3:
-            print "Key %d, Type %d, Val %d" % (key, tileType, marks)
-            print "Found! Checking for deceit..."
-            if getPosOfSetBit(xx) == 0 and curRow[getPosOfSetBit(xx)] != tileType:
-                continue
-            
-            print "XOX %d, XX %d" % (xox, xx)
-            col = getPosOfSetBit(xox >> 1)
-            print "Col %d" % (col)
-            action = Region(col * tileW + leftX, key * tileH + leftY, tileW, tileH)
-            action.highlight(1)
-            action.setX(action.getX())
-            clickAtRegion(action)
-            if xx > xox:
-                action.setX(action.getX() - tileW)
-            else:
-                action.setX(action.getX() + tileW)
-            clickAtRegion(action)
-            #puzRegion.mouseDown(Button.LEFT)
-            #puzRegion.mouseUp(Button.LEFT)
-            matchFound = 1
+        for tileType in curRow:
+            if matchFound == 1:
+                break
+            marks = curRow[tileType]
+            xox = marks & (marks << 2)
+            xx = marks & (marks << 1)
+            binCount = bin(marks).count("1")
+            delta = getPosOfSetBit(xox) - getPosOfSetBit(xx)
+            if binCount >= 3 and delta > -3 and delta < 3 and xox != 0:
+                print "Key %d, Type %d, Val %d" % (key, tileType, marks)
+                print "Found! Checking for deceit..."
+                print "Tiles %d, XOX %d, XX %d, delta %d" % (binCount, getPosOfSetBit(xox), getPosOfSetBit(xx), delta)
+                #if getPosOfSetBit(xx) == 0 and curRow[getPosOfSetBit(xx)] != tileType:
+                #   continue
+                if xx == 0 and delta < 0:
+                    continue
+                
+                matchesFound = matchesFound + 1
+                print "XOX %d, XX %d" % (xox, xx)
+                col = getPosOfSetBit(xox >> 1)
+                print "Col %d" % (col)
+                action = Region(col * tileW + leftX, key * tileH + leftY, tileW, tileH)
+                action.setX(action.getX())
+                clickAtRegion(action)
+                if xx > xox:
+                    action.setX(action.getX() - tileW)
+                else:
+                    action.setX(action.getX() + tileW)
+                clickAtRegion(action)
+                #puzRegion.mouseDown(Button.LEFT)
+                #puzRegion.mouseUp(Button.LEFT)
+                matchFound = 1
 
 if matchFound == 0:
     print "Found no matches, make me better :("
