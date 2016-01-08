@@ -29,6 +29,16 @@ def parseMatches(matches, tileType):
             puzzleTiles[tileIndex[1]][tileType] = 0
         puzzleTiles[tileIndex[1]][tileType] = prevValue | (1 << tileIndex[0])
 
+def clickAtRegion(action):
+    puzRegion.mouseMove(action)
+    puzRegion.mouseDown(Button.LEFT)
+    puzRegion.mouseUp(Button.LEFT)
+
+def getPosOfSetBit(bit):
+    if bit == 0:
+        return 0
+    return int(math.log(bit)/math.log(2))
+
 print "A bot to play 3-Match!"
 print "Python version %s" % (sys.version)
 
@@ -62,38 +72,48 @@ for key in tileTypes:
 print "Puzzle State: "
 print puzzleTiles
 
-def getPosOfSetBit(bit):
-    if bit == 0:
-        return 0
-    return int(math.log(bit)/math.log(2))
+# Give the Game Window focus
+clickAtRegion(puzRegion)
+clickAtRegion(puzRegion)
 
 matchFound = 0
 #while(matchFound == 1):
  #   matchFound = 0
 for key in puzzleTiles:
     curRow = puzzleTiles[key]
+    if matchFound == 1:
+        break
     for tileType in curRow:
+        if matchFound == 1:
+            break
         marks = curRow[tileType]
         xox = marks & (marks << 2)
         xx = marks & (marks << 1)
         binCount = bin(marks).count("1")
-        print "Old %d, New %d" % (getPosOfSetBit(marks), binCount)
-        if binCount >= 3 and getPosOfSetBit(xox) - getPosOfSetBit(xx) == 2:
-            if getPosOfSetBit(xx) == 0 and curRow[tileType] != key:
-                continue
+        if key == 2 and tileType == 2:
+            print "XOX %d, XX %d" % (getPosOfSetBit(xox), getPosOfSetBit(xx))
+        delta = getPosOfSetBit(xox) - getPosOfSetBit(xx)
+        if binCount >= 3 and delta > 0 and delta < 3:
             print "Key %d, Type %d, Val %d" % (key, tileType, marks)
+            print "Found! Checking for deceit..."
+            if getPosOfSetBit(xx) == 0 and curRow[getPosOfSetBit(xx)] != tileType:
+                continue
+            
             print "XOX %d, XX %d" % (xox, xx)
             col = getPosOfSetBit(xox >> 1)
             print "Col %d" % (col)
             action = Region(col * tileW + leftX, key * tileH + leftY, tileW, tileH)
-            action.highlight()
-            action.setX(action.getX() + 5)
-            #puzRegion.mouseMove(action)
+            action.highlight(1)
+            action.setX(action.getX())
+            clickAtRegion(action)
+            if xx > xox:
+                action.setX(action.getX() - tileW)
+            else:
+                action.setX(action.getX() + tileW)
+            clickAtRegion(action)
             #puzRegion.mouseDown(Button.LEFT)
             #puzRegion.mouseUp(Button.LEFT)
             matchFound = 1
 
 if matchFound == 0:
     print "Found no matches, make me better :("
-
-time.sleep(5)
